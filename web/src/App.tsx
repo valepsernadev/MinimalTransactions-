@@ -8,13 +8,30 @@ function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : 'Ocurrió un error inesperado.'
 }
 
+function formatAmount(value: number): string {
+  return `$${new Intl.NumberFormat('es-CO').format(value)}`
+}
+
+// El front recalcula esta comprobación con los datos recibidos (aplica los
+// pagos a los saldos); no confía en un booleano del servidor (SPEC §6). No
+// vuelve a correr settle: solo aplica la lista de pagos ya recibida.
+function appliedBalancesAreZero(summary: Summary): boolean {
+  const remaining = new Map(summary.balances.map((b) => [b.memberId, b.balance]))
+  for (const p of summary.payments) {
+    remaining.set(p.fromId, (remaining.get(p.fromId) ?? 0) + p.amount)
+    remaining.set(p.toId, (remaining.get(p.toId) ?? 0) - p.amount)
+  }
+  return [...remaining.values()].every((balance) => balance === 0)
+}
+
 function App() {
   const [health, setHealth] = useState<HealthState>('checking')
 
   const [members, setMembers] = useState<Member[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
-  const [, setSummary] = useState<Summary | null>(null)
+  const [summary, setSummary] = useState<Summary | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [seedError, setSeedError] = useState<string | null>(null)
 
   const [memberName, setMemberName] = useState('')
   const [memberError, setMemberError] = useState<string | null>(null)
@@ -146,6 +163,22 @@ function App() {
     }
   }
 
+  async function handleSeed(scenario: 'A' | 'B') {
+    const confirmText =
+      scenario === 'A'
+        ? '¿Restablecer los datos de ejemplo? Se reemplazan todos los datos actuales.'
+        : '¿Cargar el escenario de prueba B? Se reemplazan todos los datos actuales.'
+    if (!window.confirm(confirmText)) return
+
+    setSeedError(null)
+    try {
+      await api.seed(scenario)
+      await refreshAll()
+    } catch (err) {
+      setSeedError(errorMessage(err))
+    }
+  }
+
   return (
     <main>
       <h1>Minimal Transactions</h1>
@@ -265,6 +298,80 @@ function App() {
             Agregar gasto
           </button>
         </form>
+      </section>
+
+      <section>
+        <h2>Saldos</h2>
+        {summary && summary.balances.length > 0 && (
+          <ul>
+            {summary.balances.map((b) => (
+              <li
+                key={b.memberId}
+                className={
+                  b.balance > 0 ? 'balance-positive' : b.balance < 0 ? 'balance-negative' : 'balance-zero'
+                }
+              >
+                {b.balance > 0 && (
+                  <>
+                    {b.name}: le deben {formatAmount(b.balance)}
+                  </>
+                )}
+                {b.balance < 0 && (
+                  <>
+                    {b.name}: debe {formatAmount(-b.balance)}
+                  </>
+                )}
+                {b.balance === 0 && <>{b.name}: sin pendientes</>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section>
+        <h2>Plan de pagos</h2>
+        {summary && summary.payments.length === 0 && <p>Todo saldado, no hay pagos pendientes.</p>}
+        {summary && summary.payments.length > 0 && (
+          <>
+            <ul>
+              {summary.payments.map((p, i) => {
+                const from = summary.balances.find((b) => b.memberId === p.fromId)?.name ?? p.fromId
+                const to = summary.balances.find((b) => b.memberId === p.toId)?.name ?? p.toId
+                return (
+                  <li key={i}>
+                    {from} paga {formatAmount(p.amount)} a {to}
+                  </li>
+                )
+              })}
+            </ul>
+            <p>{summary.payments.length} pagos (mínimo)</p>
+          </>
+        )}
+        {summary && (
+          <p className={appliedBalancesAreZero(summary) ? 'status-ok' : 'status-down'}>
+            {appliedBalancesAreZero(summary) ? 'Saldos en cero ✓' : 'Saldos en cero ✗'}
+          </p>
+        )}
+
+        <details>
+          <summary>¿Cómo sabemos que es el mínimo?</summary>
+          <p>
+            Cada componente conexa del grafo de pagos es un conjunto de personas cuyos saldos suman 0, y
+            con <em>k</em> personas necesita al menos <em>k − 1</em> pagos. El total es al menos{' '}
+            <em>n − (nº de componentes)</em>. Maximizar el número de grupos de suma cero minimiza los
+            pagos, y la DP explora todas las particiones.
+          </p>
+        </details>
+
+        <p>
+          <button type="button" onClick={() => handleSeed('A')}>
+            Restablecer datos de ejemplo
+          </button>{' '}
+          <button type="button" onClick={() => handleSeed('B')}>
+            Cargar escenario de prueba (B)
+          </button>
+        </p>
+        {seedError && <p className="field-error">{seedError}</p>}
       </section>
     </main>
   )

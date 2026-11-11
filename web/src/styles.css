@@ -56,3 +56,15 @@ li {
   color: #1a7f37;
   margin: 0;
 }
+
+.balance-positive {
+  color: #1a7f37;
+}
+
+.balance-negative {
+  color: #b42318;
+}
+
+.balance-zero {
+  color: #555;
+}

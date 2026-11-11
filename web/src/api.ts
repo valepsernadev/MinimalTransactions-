@@ -86,3 +86,7 @@ export function deleteExpense(id: number): Promise<void> {
 export function getSummary(): Promise<Summary> {
   return request('/summary')
 }
+
+export function seed(scenario: 'A' | 'B'): Promise<{ members: number; expenses: number }> {
+  return request('/seed', { method: 'POST', body: JSON.stringify({ scenario }) })
+}
