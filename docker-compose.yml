@@ -11,5 +11,20 @@ services:
       - mssql-data:/var/opt/mssql
     restart: unless-stopped
 
+  app:
+    build: .
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      DB_PORT: 1433
+      DB_NAME: MinimalTx
+      PORT: 3000
+      STORAGE: sqlserver
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
 volumes:
   mssql-data:

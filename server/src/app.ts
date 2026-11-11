@@ -1,3 +1,6 @@
+import fs from 'node:fs'
+import path from 'node:path'
+import fastifyStatic from '@fastify/static'
 import Fastify, { type FastifyInstance } from 'fastify'
 import { isDatabaseUp } from './db'
 import { createRepo, type Repo } from './repo'
@@ -39,6 +42,13 @@ export function buildApp(deps: BuildAppDeps = {}): FastifyInstance {
   registerExpenseRoutes(app, repo)
   registerSummaryRoute(app, repo)
   registerSeedRoute(app, repo)
+
+  // Solo existe en la imagen de producción (Dockerfile); en desarrollo, Vite
+  // sirve el front y reenvía /api a Fastify (SPEC §2).
+  const webDistPath = path.join(__dirname, '../../web/dist')
+  if (fs.existsSync(webDistPath)) {
+    app.register(fastifyStatic, { root: webDistPath })
+  }
 
   return app
 }
