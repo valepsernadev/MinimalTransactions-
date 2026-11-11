@@ -70,9 +70,9 @@ El pagador puede o no estar entre los participantes.
 1. Descartar saldos en 0. Sea `n` el número restante.
 2. Para cada subconjunto (máscara de bits), calcular la suma de sus saldos.
 3. `dp[mask] = max(dp[mask sin i]) + (suma[mask] == 0 ? 1 : 0)`. Así `dp[todos]` es el **máximo número de grupos disjuntos de suma cero**.
-4. Reconstruir los grupos. En cada grupo de `k` personas, emparejar deudores y acreedores (mayor deudor paga al mayor acreedor) da exactamente `k − 1` pagos.
+4. Reconstruir los grupos con una regla fija (no solo el emparejamiento final, también qué partición se reconstruye): las personas restantes están ordenadas por `Id` (bit 0 = menor `Id`). Mientras queden personas sin asignar a un grupo, toma la de menor `Id` entre las restantes. Entre los subconjuntos de suma cero que la contienen y preservan el óptimo (`dp[restante sin el grupo] + 1 = dp[restante]`), elige el de **menor tamaño** y, si empatan en tamaño, el de **menor valor de máscara**. Repite con las personas que queden. Dentro de cada grupo ya fijado, empareja al mayor deudor con el mayor acreedor (empates por `Id` ascendente) hasta que el grupo llegue a saldo cero; esto da exactamente `k − 1` pagos para un grupo de `k` personas.
 5. Total de pagos = `n − nº de grupos`. Salida: `{ fromId, toId, amount }[]`, con `amount > 0`.
-6. Desempates por `Id` ascendente, para que el mismo estado produzca siempre el mismo plan.
+6. El desempate del paso 4 fija también **qué partición** se reconstruye (no solo el emparejamiento), para que el mismo estado de entrada produzca siempre el mismo plan. El oráculo de fuerza bruta (§6) se compara por **número de pagos** e invariantes, no por plan idéntico; el determinismo se prueba aparte, ejecutando el algoritmo dos veces sobre la misma entrada y comprobando que el plan es idéntico.
 
 **Por qué es el mínimo (texto para el jurado y para el panel de la app):** cada componente conexa del grafo de pagos es un conjunto de personas cuyos saldos suman 0, y con `k` personas necesita al menos `k − 1` pagos. El total es al menos `n − (nº de componentes)`. Maximizar el número de grupos de suma cero minimiza los pagos, y la DP explora todas las particiones.
 
