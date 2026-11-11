@@ -15,3 +15,10 @@ Registro de prompts relevantes: contexto breve, prompt, resultado y decisión. E
 - **Prompt:** crear workspaces `web/` y `server/`; Fastify con `GET /api/health`; proxy de Vite a `/api`; React muestra "Minimal Transactions" y el estado de la API; Vitest configurado; además `.env.example`, `CLAUDE.md`, `PROMPTLOG.md`, `README.md`.
 - **Resultado:** ver commit `T1 esqueleto` y la salida de `npm test` / `npm run build` en esa entrada de esta sesión.
 - **Decisión:** se creó también `.gitignore` (no existía, pese a asumir que sí) para no romper el criterio "Listo cuando" de T1 (`git status` no lista `.env`); se avisó explícitamente del desvío antes de hacerlo.
+
+## T2 — `money`, `split` y `balances` (2026-11-11)
+
+- **Contexto:** primera tarea de dominio puro (sin Docker), siguiendo SPEC §5.1–§5.3.
+- **Prompt:** implementar `parseAmount`/`formatAmount`, `splitExpense` y `computeBalances` en `server/src/domain`, con tests junto al código.
+- **Resultado:** 18 tests nuevos en verde (`money`, `split`, `balances`); se creó `server/tests/fixtures/scenarios.ts` con el Escenario A (y los saldos del B) como fixture compartido, reutilizable en T3/T4.
+- **Decisión:** `parseAmount` lanza `Error` con mensaje en español directamente (no un código de error con `field`); el mapeo a `{code, message, field}` de la API queda para `domain/validation.ts` en T6, que puede capturar y reempacar ese mensaje.
