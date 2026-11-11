@@ -1,0 +1,22 @@
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #f5f5f5;
+  color: #1a1a1a;
+}
+
+main {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.status-ok {
+  color: #1a7f37;
+  font-weight: 600;
+}
+
+.status-down {
+  color: #b42318;
+  font-weight: 600;
+}
