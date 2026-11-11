@@ -22,3 +22,10 @@ Registro de prompts relevantes: contexto breve, prompt, resultado y decisión. E
 - **Prompt:** implementar `parseAmount`/`formatAmount`, `splitExpense` y `computeBalances` en `server/src/domain`, con tests junto al código.
 - **Resultado:** 18 tests nuevos en verde (`money`, `split`, `balances`); se creó `server/tests/fixtures/scenarios.ts` con el Escenario A (y los saldos del B) como fixture compartido, reutilizable en T3/T4.
 - **Decisión:** `parseAmount` lanza `Error` con mensaje en español directamente (no un código de error con `field`); el mapeo a `{code, message, field}` de la API queda para `domain/validation.ts` en T6, que puede capturar y reempacar ese mensaje.
+
+## T3 — `settle`: mínimo absoluto de pagos (2026-11-11)
+
+- **Contexto:** núcleo algorítmico del reto (SPEC §5.4, con la regla de desempate que fijaste antes de T1).
+- **Prompt:** implementar la DP sobre subconjuntos y la reconstrucción determinista del plan de pagos; sin greedy en la app.
+- **Resultado:** Escenario A → 4 pagos, todos hacia Valeria; Escenario B → 3 pagos; en ambos, al aplicar los pagos los saldos quedan en 0; con todos los saldos en 0 devuelve lista vacía. `npm test` (23 tests) y `npm run build` en verde.
+- **Decisión:** la reconstrucción de grupos y el emparejamiento intra-grupo quedan como funciones internas no exportadas de `settle.ts` (no hace falta probarlas por separado, se cubren a través de `settle`); se agregó un `throw` interno si no se encuentra una partición óptima, para fallar ruidosamente ante un bug futuro en vez de devolver un plan incorrecto en silencio.
