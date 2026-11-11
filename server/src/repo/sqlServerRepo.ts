@@ -1,6 +1,6 @@
 import sql from 'mssql'
 import { getPool } from '../db/connection'
-import type { Expense, Member, NewExpense, Repo } from './types'
+import type { Expense, Member, NewExpense, Repo, SeedExpense } from './types'
 
 export function createSqlServerRepo(): Repo {
   return {
@@ -91,6 +91,53 @@ export function createSqlServerRepo(): Repo {
         .input('id', sql.Int, id)
         .query('DELETE FROM dbo.Expenses WHERE Id = @id')
       return (result.rowsAffected[0] ?? 0) > 0
+    },
+
+    async replaceAll(
+      memberNames: string[],
+      expenseSpecs: SeedExpense[],
+    ): Promise<{ members: number; expenses: number }> {
+      const pool = await getPool()
+      const transaction = new sql.Transaction(pool)
+      await transaction.begin()
+
+      try {
+        await new sql.Request(transaction).query('DELETE FROM dbo.ExpenseParticipants')
+        await new sql.Request(transaction).query('DELETE FROM dbo.Expenses')
+        await new sql.Request(transaction).query('DELETE FROM dbo.Members')
+
+        const idByName = new Map<string, number>()
+        for (const name of memberNames) {
+          const result = await new sql.Request(transaction)
+            .input('name', sql.NVarChar(20), name)
+            .query('INSERT INTO dbo.Members (Name) OUTPUT INSERTED.Id VALUES (@name)')
+          idByName.set(name, result.recordset[0].Id)
+        }
+
+        for (const spec of expenseSpecs) {
+          const expenseResult = await new sql.Request(transaction)
+            .input('description', sql.NVarChar(60), spec.description)
+            .input('amount', sql.Int, spec.amount)
+            .input('payerId', sql.Int, idByName.get(spec.payer))
+            .query(
+              'INSERT INTO dbo.Expenses (Description, Amount, PayerId) OUTPUT INSERTED.Id VALUES (@description, @amount, @payerId)',
+            )
+          const expenseId = expenseResult.recordset[0].Id
+
+          for (const participant of spec.participants) {
+            await new sql.Request(transaction)
+              .input('expenseId', sql.Int, expenseId)
+              .input('memberId', sql.Int, idByName.get(participant))
+              .query('INSERT INTO dbo.ExpenseParticipants (ExpenseId, MemberId) VALUES (@expenseId, @memberId)')
+          }
+        }
+
+        await transaction.commit()
+        return { members: memberNames.length, expenses: expenseSpecs.length }
+      } catch (err) {
+        await transaction.rollback()
+        throw err
+      }
     },
   }
 }

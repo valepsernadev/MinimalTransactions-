@@ -3,6 +3,8 @@ import { isDatabaseUp } from './db'
 import { createRepo, type Repo } from './repo'
 import { registerExpenseRoutes } from './routes/expenses'
 import { registerMemberRoutes } from './routes/members'
+import { registerSeedRoute } from './routes/seed'
+import { registerSummaryRoute } from './routes/summary'
 
 export type BuildAppDeps = {
   // Inyectables para que los tests no dependan de una conexión real a SQL Server.
@@ -35,6 +37,8 @@ export function buildApp(deps: BuildAppDeps = {}): FastifyInstance {
 
   registerMemberRoutes(app, repo)
   registerExpenseRoutes(app, repo)
+  registerSummaryRoute(app, repo)
+  registerSeedRoute(app, repo)
 
   return app
 }
