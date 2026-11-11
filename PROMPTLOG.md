@@ -29,3 +29,11 @@ Registro de prompts relevantes: contexto breve, prompt, resultado y decisión. E
 - **Prompt:** implementar la DP sobre subconjuntos y la reconstrucción determinista del plan de pagos; sin greedy en la app.
 - **Resultado:** Escenario A → 4 pagos, todos hacia Valeria; Escenario B → 3 pagos; en ambos, al aplicar los pagos los saldos quedan en 0; con todos los saldos en 0 devuelve lista vacía. `npm test` (23 tests) y `npm run build` en verde.
 - **Decisión:** la reconstrucción de grupos y el emparejamiento intra-grupo quedan como funciones internas no exportadas de `settle.ts` (no hace falta probarlas por separado, se cubren a través de `settle`); se agregó un `throw` interno si no se encuentra una partición óptima, para fallar ruidosamente ante un bug futuro en vez de devolver un plan incorrecto en silencio.
+
+## T4 — Verificación del mínimo (2026-11-11)
+
+- **Contexto:** SPEC §6. Candidato a Ejemplo 2 y 3 de los "tres ejemplos de IA" del README (se confirma en T12).
+- **Prompt:** oráculo de fuerza bruta por particiones de conjunto (sin la DP), comparador voraz solo en tests, contraejemplo fijo (Escenario B) y test aleatorio (≥5.000 casos, semilla fija).
+- **Resultado:** contraejemplo fijo → `settle = 3`, `greedy = 4` (confirma SPEC §6); el oráculo coincide con `settle` en Escenario A y B; 5.000 casos aleatorios (semilla 42, 2 a 6 personas) pasan: `settle.length === oráculo`, invariante de saldo cero tras aplicar los pagos, y determinismo (mismo input → mismo plan). `npm test` (26 tests) y `npm run build` en verde.
+- **Evidencia / bug encontrado y corregido:** el primer intento del test aleatorio falló con `expected -0 to be +0` — no era un bug de `settle`, sino del generador de datos del test: cuando la suma de los primeros `n-1` saldos da exactamente 0, `-sum` produce `-0` en JS, y Vitest's `toBe` (igualdad `Object.is`) distingue `-0` de `0`. Se corrigió normalizando con `-sum || 0`.
+- **Decisión:** el oráculo y el greedy viven en `server/tests/support/` (no en `server/src/domain`), para que sea imposible importarlos desde la app por error, cumpliendo la restricción de AGENTS.md de no usar greedy en producción.
